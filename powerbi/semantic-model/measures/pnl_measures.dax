@@ -1,0 +1,18 @@
+// P&L Measures
+
+Total P&L = 
+SUM(fact_pnl_daily[total_pnl])
+
+Realized P&L = 
+SUM(fact_pnl_daily[realized_pnl])
+
+Unrealized P&L = 
+SUM(fact_pnl_daily[unrealized_pnl])
+
+P&L Percentage = 
+DIVIDE(
+    [Total P&L],
+    [Total AUM],
+    0
+)
+

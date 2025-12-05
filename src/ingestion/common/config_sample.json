@@ -1,0 +1,26 @@
+{
+  "s3": {
+    "endpoint": "s3://your-bucket-name",
+    "region": "us-east-1",
+    "access_key": "YOUR_ACCESS_KEY",
+    "secret_key": "YOUR_SECRET_KEY"
+  },
+  "kaggle": {
+    "username": "your_username",
+    "api_key": "your_api_key",
+    "dataset": "your_dataset_name"
+  },
+  "fabric": {
+    "workspace_ingestion": "wm-raw-ingestion",
+    "workspace_analytics": "wm-analytics-engineering",
+    "workspace_reporting": "wm-reporting-bi",
+    "lakehouse": "wm-lakehouse",
+    "warehouse": "wm-warehouse"
+  },
+  "paths": {
+    "bronze": "Tables/bronze",
+    "silver": "Tables/silver",
+    "gold": "Tables/gold"
+  }
+}
+

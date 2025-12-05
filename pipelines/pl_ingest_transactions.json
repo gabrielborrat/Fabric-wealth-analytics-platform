@@ -1,0 +1,7 @@
+{
+  "name": "pl_ingest_transactions",
+  "description": "Pipeline for transactions data ingestion from Kaggle to Bronze layer",
+  "activities": [],
+  "parameters": {}
+}
+

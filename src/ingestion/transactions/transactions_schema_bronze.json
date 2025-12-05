@@ -1,0 +1,41 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "transaction_id",
+      "type": "string",
+      "nullable": false
+    },
+    {
+      "name": "account_id",
+      "type": "string",
+      "nullable": false
+    },
+    {
+      "name": "transaction_date",
+      "type": "timestamp",
+      "nullable": false
+    },
+    {
+      "name": "transaction_type",
+      "type": "string",
+      "nullable": false
+    },
+    {
+      "name": "amount",
+      "type": "double",
+      "nullable": false
+    },
+    {
+      "name": "currency",
+      "type": "string",
+      "nullable": false
+    },
+    {
+      "name": "ingestion_timestamp",
+      "type": "timestamp",
+      "nullable": false
+    }
+  ]
+}
+

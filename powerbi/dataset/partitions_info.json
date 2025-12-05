@@ -1,0 +1,20 @@
+{
+  "partitions": [
+    {
+      "table": "fact_aum_daily",
+      "partition_strategy": "date_range",
+      "partition_column": "date_key"
+    },
+    {
+      "table": "fact_pnl_daily",
+      "partition_strategy": "date_range",
+      "partition_column": "date_key"
+    },
+    {
+      "table": "fact_positions_daily",
+      "partition_strategy": "date_range",
+      "partition_column": "date_key"
+    }
+  ]
+}
+

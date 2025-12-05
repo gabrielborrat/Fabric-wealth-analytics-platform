@@ -1,0 +1,21 @@
+// FX Exposure Measures
+
+Total FX Exposure = 
+SUMX(
+    fact_positions_daily,
+    IF(
+        fact_positions_daily[currency_code] <> dim_account[base_currency],
+        fact_positions_daily[market_value],
+        0
+    )
+)
+
+FX Exposure by Currency = 
+CALCULATE(
+    [Total FX Exposure],
+    VALUES(dim_currency[currency_code])
+)
+
+FX Impact on P&L = 
+SUM(fact_pnl_daily[fx_impact])
+
