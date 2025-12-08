@@ -1,0 +1,71 @@
+{
+    "name": "pl_master_ingestion",
+    "objectId": "8e4d7756-8797-4e86-a329-8e6e7a9aae15",
+    "properties": {
+        "activities": [
+            {
+                "name": "Invoke_Ingest_FX",
+                "type": "InvokePipeline",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "FX",
+                        "p_SourcePath": "FX-rates-since2004-dataset/",
+                        "p_LandingPath": "landing/fx/",
+                        "p_ArchivePath": "archive/fx/"
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_CUST",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_FX",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "CUSTOMER",
+                        "p_SourcePath": "customer_churn/",
+                        "p_LandingPath": "landing/customer/",
+                        "p_ArchivePath": "archive/customer/"
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            }
+        ],
+        "lastModifiedByObjectId": "871e52e6-9b89-4437-9ee4-ef6cc511763d",
+        "lastPublishTime": "2025-12-02T08:20:08Z"
+    }
+}

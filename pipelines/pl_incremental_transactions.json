@@ -1,7 +1,0 @@
-{
-  "name": "pl_incremental_transactions",
-  "description": "Pipeline for incremental transactions data ingestion",
-  "activities": [],
-  "parameters": {}
-}
-

@@ -1,7 +1,0 @@
-{
-  "name": "pl_incremental_fx",
-  "description": "Pipeline for incremental FX data ingestion",
-  "activities": [],
-  "parameters": {}
-}
-
