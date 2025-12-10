@@ -66,7 +66,14 @@
                         {
                             "name": "Copy_ToLanding_Generic",
                             "type": "Copy",
-                            "dependsOn": [],
+                            "dependsOn": [
+                                {
+                                    "activity": "Get_File_Additional_Metadata",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
                             "policy": {
                                 "timeout": "0.12:00:00",
                                 "retry": 3,
@@ -447,12 +454,15 @@
                                         "type": "string"
                                     },
                                     "file_size": {
-                                        "value": "-1",
+                                        "value": {
+                                            "value": "@activity('Get_File_Additional_Metadata').output.size",
+                                            "type": "Expression"
+                                        },
                                         "type": "string"
                                     },
                                     "modified_datetime": {
                                         "value": {
-                                            "value": "@item().modified_datetime",
+                                            "value": "@activity('Get_File_Additional_Metadata').output.lastModified",
                                             "type": "Expression"
                                         },
                                         "type": "string"
@@ -536,11 +546,17 @@
                                         "type": "string"
                                     },
                                     "file_size": {
-                                        "value": "-1",
+                                        "value": {
+                                            "value": "@activity('Get_File_Additional_Metadata').output.size",
+                                            "type": "Expression"
+                                        },
                                         "type": "string"
                                     },
                                     "modified_time": {
-                                        "value": "",
+                                        "value": {
+                                            "value": "@activity('Get_File_Additional_Metadata').output.lastModified",
+                                            "type": "Expression"
+                                        },
                                         "type": "string"
                                     },
                                     "exec_date": {
@@ -571,6 +587,53 @@
                                         },
                                         "type": "int"
                                     }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get_File_Additional_Metadata",
+                            "type": "GetMetadata",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "typeProperties": {
+                                "fieldList": [
+                                    "lastModified",
+                                    "size"
+                                ],
+                                "datasetSettings": {
+                                    "annotations": [],
+                                    "type": "Binary",
+                                    "typeProperties": {
+                                        "location": {
+                                            "type": "AmazonS3Location",
+                                            "bucketName": "gabefirstbucket",
+                                            "folderPath": {
+                                                "value": "@pipeline().parameters.p_SourcePath",
+                                                "type": "Expression"
+                                            },
+                                            "fileName": {
+                                                "value": "@item().name",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    },
+                                    "externalReferences": {
+                                        "connection": "6aae3c03-42b5-4f49-8dc9-172e79fe2f8c"
+                                    }
+                                },
+                                "storeSettings": {
+                                    "type": "AmazonS3ReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "BinaryReadSettings"
                                 }
                             }
                         }
@@ -706,6 +769,7 @@
             },
             {
                 "name": "Prepare_Incremental_List",
+                "description": "1 df = file list (name,file_path) from S3 bucket metadata left outer join 1df = manifest table data ",
                 "type": "TridentNotebook",
                 "dependsOn": [
                     {
@@ -807,19 +871,19 @@
         "parameters": {
             "p_Entity": {
                 "type": "string",
-                "defaultValue": "CUSTOMER"
+                "defaultValue": "CARD"
             },
             "p_SourcePath": {
                 "type": "string",
-                "defaultValue": "customer_churn/"
+                "defaultValue": "stock-market-datasets/etf/"
             },
             "p_LandingPath": {
                 "type": "string",
-                "defaultValue": "landing/customer/"
+                "defaultValue": "landing/etf/"
             },
             "p_ArchivePath": {
                 "type": "string",
-                "defaultValue": "archive/customer/"
+                "defaultValue": "archive/etf/"
             },
             "p_IngestionMode": {
                 "type": "string",
@@ -864,6 +928,6 @@
             }
         },
         "lastModifiedByObjectId": "871e52e6-9b89-4437-9ee4-ef6cc511763d",
-        "lastPublishTime": "2025-12-03T21:38:09Z"
+        "lastPublishTime": "2025-12-07T21:55:34Z"
     }
 }

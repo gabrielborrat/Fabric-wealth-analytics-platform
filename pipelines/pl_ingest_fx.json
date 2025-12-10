@@ -1,7 +1,0 @@
-{
-  "name": "pl_ingest_fx",
-  "description": "Pipeline for FX data ingestion from S3 to Bronze layer",
-  "activities": [],
-  "parameters": {}
-}
-

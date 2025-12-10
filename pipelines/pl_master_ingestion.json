@@ -57,7 +57,333 @@
                         "p_Entity": "CUSTOMER",
                         "p_SourcePath": "customer_churn/",
                         "p_LandingPath": "landing/customer/",
-                        "p_ArchivePath": "archive/customer/"
+                        "p_ArchivePath": "archive/customer/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_FUNDAMENTALS",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_CUST",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "FUNDAMENTALS",
+                        "p_SourcePath": "NYSE-dataset/fundamentals/",
+                        "p_LandingPath": "landing/fundamentals/",
+                        "p_ArchivePath": "archive/fundamentals/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_SECURITIES",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_FUNDAMENTALS",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "SECURITIES",
+                        "p_SourcePath": "NYSE-dataset/securities/",
+                        "p_LandingPath": "landing/securities/",
+                        "p_ArchivePath": "archive/securities/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_PRICES",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_SECURITIES",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "PRICES",
+                        "p_SourcePath": "NYSE-dataset/prices/",
+                        "p_LandingPath": "landing/prices/",
+                        "p_ArchivePath": "archive/prices/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_PRICES_SPLIT_ADJUSTED",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_PRICES",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "PRICES_SPLIT_ADJUSTED",
+                        "p_SourcePath": "NYSE-dataset/prices-split/",
+                        "p_LandingPath": "landing/prices-split/",
+                        "p_ArchivePath": "archive/prices-split/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_ETF",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_USER",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "ETF",
+                        "p_SourcePath": "stock-market-datasets/etf/",
+                        "p_LandingPath": "landing/etf/",
+                        "p_ArchivePath": "archive/etf/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_USER",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_PRICES_SPLIT_ADJUSTED",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "USER",
+                        "p_SourcePath": "financial-transactions-dataset/users/",
+                        "p_LandingPath": "landing/user/",
+                        "p_ArchivePath": "archive/user/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_STOCK",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_ETF",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "STOCK",
+                        "p_SourcePath": "stock-market-datasets/stock/",
+                        "p_LandingPath": "landing/stock/",
+                        "p_ArchivePath": "archive/stock/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_CARD",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_STOCK",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "CARD",
+                        "p_SourcePath": "financial-transactions-dataset/cards/",
+                        "p_LandingPath": "landing/card/",
+                        "p_ArchivePath": "archive/card/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
+                    }
+                },
+                "externalReferences": {
+                    "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
+                }
+            },
+            {
+                "name": "Invoke_Ingest_MCC",
+                "type": "InvokePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_CARD",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "waitOnCompletion": true,
+                    "operationType": "InvokeFabricPipeline",
+                    "pipelineId": "c9c5153d-3cc9-4e6b-9367-06627f30eb09",
+                    "workspaceId": "eb329c81-2277-4112-8f23-571b924dcd04",
+                    "parameters": {
+                        "p_Entity": "MCC",
+                        "p_SourcePath": "financial-transactions-dataset/mcc/",
+                        "p_LandingPath": "landing/mcc/",
+                        "p_ArchivePath": "archive/mcc/",
+                        "p_IngestionMode": "INCR",
+                        "p_WatermarkDays": 2
                     }
                 },
                 "externalReferences": {
@@ -66,6 +392,6 @@
             }
         ],
         "lastModifiedByObjectId": "871e52e6-9b89-4437-9ee4-ef6cc511763d",
-        "lastPublishTime": "2025-12-02T08:20:08Z"
+        "lastPublishTime": "2025-12-07T23:59:00Z"
     }
 }
