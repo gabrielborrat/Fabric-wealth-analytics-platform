@@ -12,6 +12,8 @@ This document describes the Fabric pipelines used for data orchestration in the 
 
 The Bronze layer uses a **unified, parameter-driven ingestion framework** that eliminates pipeline duplication. All entities (FX, CUSTOMER, STOCK, ETF, USER, CARD, MCC, PRICES, SECURITIES, FUNDAMENTALS, etc.) are ingested through a single generic pipeline configured with entity-specific parameters.
 
+In addition, the Bronze layer is governed by a **Schema Registry** (YAML contracts) and a **post-ingestion schema compliance validation** process that detects schema drift and enforces “frozen” Bronze contracts operationally.
+
 ---
 
 ## pl_ingest_generic — Generic Ingestion Pipeline
@@ -29,6 +31,8 @@ The **core reusable pipeline** that handles ingestion for all entities.
 | `p_IngestionMode` | string | "INCR" | Ingestion mode: "FULL" or "INCR" (incremental based on manifest) |
 | `p_WatermarkDays` | int | 2 | Number of days for watermark-based filtering (incremental mode) |
 
+> Note: Incremental ingestion is **manifest-based** (new files only). `p_WatermarkDays` is retained for backward compatibility/documentation but is not the governing mechanism for INCR.
+
 ### Pipeline Flow — Detailed Steps
 
 #### Phase 1: File Discovery & Candidate Selection
@@ -43,7 +47,7 @@ The **core reusable pipeline** that handles ingestion for all entities.
    - Variable: `v_TotalFiles = length(GetFileList_Generic.output.childItems)`
 
 3. **Prepare_Incremental_List** (TridentNotebook Activity)
-   - **Notebook ID**: `7990d5f2-994b-4f9e-b42b-dc7bceaadde2`
+   - **Notebook**: `nb_prepare_incremental_list`
    - Compares source file list against the ingestion manifest table
    - Performs left outer join to identify new/unprocessed files
    - Filters files based on `p_IngestionMode`:
@@ -72,17 +76,12 @@ For each file in `v_FilesToProcess`:
 
 2. **Copy_ToLanding_Generic** (Copy Activity)
    - **Source**: Amazon S3 (Binary format)
-     - Bucket: `gabefirstbucket`
-     - Path: `@p_SourcePath/@item().name`
    - **Sink**: Lakehouse Landing Zone (Binary format)
-     - Lakehouse: `lh_wm_core` (Workspace ID: `300f0249-d03f-436c-97fc-5b5940cc3aa3`)
-     - Path: `Files/@p_LandingPath/yyyy-MM-dd/@item().name`
-     - Uses execution date from `pipeline().TriggerTime`
    - **Retry Policy**: 3 retries, 60 seconds interval
    - **Timeout**: 12 hours
 
 3. **LoadBronzeNotebook_Generic** (TridentNotebook Activity)
-   - **Notebook ID**: `83c720f0-1f02-4d5d-8152-92d2aa404d02`
+   - **Notebook**: `nb_load_generic_bronze`
    - **Parameters**:
      - `LandingPath`: Full path to landing file (`Files/@p_LandingPath/yyyy-MM-dd/`)
      - `Entity`: Entity identifier (`@p_Entity`)
@@ -91,60 +90,35 @@ For each file in `v_FilesToProcess`:
      - Reads raw file from Landing zone
      - Applies entity-specific transformation logic
      - Normalizes column names (snake_case)
-     - Adds technical metadata columns (ingestion_timestamp, exec_date, etc.)
-     - Enforces schema validation
-     - Writes to Bronze Delta table: `bronze_<entity>_raw`
+     - Adds technical metadata columns (`source_file`, `ingestion_date`, `ingestion_ts`, `entity`)
+     - Enforces strict write behavior (no mergeSchema)
+     - Writes to Bronze Delta table (append-only): `bronze_<entity>_raw`
    - **Retry Policy**: 2 retries, 120 seconds interval
    - **Timeout**: 12 hours
 
+   > Note: Schema contract enforcement is primarily handled via **post-ingestion schema registry validation** (see `pl_master_ingestion` below). In-notebook validation can be added later as a hard enforcement phase if desired.
+
 4. **CopyToArchive_Generic** (Copy Activity)
-   - **Source**: Lakehouse Landing Zone
-     - Path: `Files/@p_LandingPath/yyyy-MM-dd/@item().name`
-   - **Sink**: Lakehouse Archive Zone
-     - Path: `Files/@p_ArchivePath/yyyy-MM-dd/@item().name`
-   - Moves file to immutable archive for audit and reprocessing
+   - Moves file from Landing to immutable Archive for audit and reprocessing
    - **Retry Policy**: 3 retries, 60 seconds interval
 
 5. **Success Path — Counter & Manifest Update**
-   - **Inc_ProcessedTmp**: Increments temporary counter (`v_ProcessedFilesTmp = v_ProcessedFiles + 1`)
-   - **Set_ProcessedFromTmp**: Persists counter (`v_ProcessedFiles = v_ProcessedFilesTmp`)
-   - **Update_Manifest_Success** (TridentNotebook Activity)
-     - **Notebook ID**: `f4f25906-c588-4870-8761-496b0f0a3c18`
-     - Updates manifest table with status "SUCCESS"
-     - Records: file_path, source_name, file_size, modified_datetime, exec_date, ingestion_mode, total_source_files, total_candidate_files
+   - Increments processed counters and updates `tech_ingestion_manifest` with status `SUCCESS`
 
 6. **Failure Path — Counter & Manifest Update**
-   - **Inc_FailedTmp**: Increments temporary failure counter (`v_FailedFilesTmp = v_FailedFiles + 1`)
-   - **Set_FailedFromTmp**: Persists counter (`v_FailedFiles = v_FailedFilesTmp`)
-   - **Update_Manifest_Failed** (TridentNotebook Activity)
-     - **Notebook ID**: `f4f25906-c588-4870-8761-496b0f0a3c18`
-     - Updates manifest table with status "FAILED"
-     - Records failure metadata for diagnostics
+   - Increments failure counters and updates `tech_ingestion_manifest` with status `FAILED`
 
 **Failure Isolation**: Each file is processed independently. A single file failure does **not** stop the entire pipeline run.
 
 #### Phase 3: Final Status & Logging
 
 1. **Derive_Status** (SetVariable Activity)
-   - Computes final pipeline run status based on counters:
-     - **SUCCESS**: `v_FailedFiles = 0` AND `v_ProcessedFiles = v_TotalFiles`
-     - **NO_DATA**: `v_TotalFiles = 0` (no files found in source)
-     - **FAILED**: `v_ProcessedFiles = 0` AND `v_FailedFiles > 0` (all files failed)
-     - **PARTIAL**: Some files succeeded, some failed
+   - Computes final pipeline run status (SUCCESS / PARTIAL / FAILED / NO_DATA)
    - Variable: `v_Status`
 
 2. **WriteIngestionLog_Generic** (TridentNotebook Activity)
-   - **Notebook ID**: `6484b065-de7a-485f-8196-649e8e0e153f`
-   - Writes run-level metrics to `tech_ingestion_log` table
-   - Records:
-     - `exec_date`: Execution date
-     - `entity`: Entity identifier
-     - `total_files`: Total files in source
-     - `total_candidate_files`: Files selected for processing
-     - `processed_files`: Successfully processed count
-     - `failed_files`: Failed count
-     - `status`: Final status (SUCCESS, PARTIAL, FAILED, NO_DATA)
-     - `ingestion_mode`: FULL or INCR
+   - **Notebook**: `nb_log_ingestion`
+   - Writes run-level metrics to `tech_ingestion_log`
 
 ### Pipeline Variables
 
@@ -167,34 +141,11 @@ For each file in `v_FilesToProcess`:
 | Notebook Activities | 2 | 120 seconds | 12 hours |
 | GetMetadata Activities | 0 | 30 seconds | 12 hours |
 
-### Dynamic Expressions
-
-**Landing Path**:
-```
-@concat(
-    'Files/',
-    pipeline().parameters.p_LandingPath,
-    formatDateTime(pipeline().TriggerTime,'yyyy-MM-dd'),
-    '/'
-)
-```
-
-**Archive Path**:
-```
-@concat(
-    pipeline().parameters.p_ArchivePath,
-    formatDateTime(pipeline().TriggerTime,'yyyy-MM-dd'),
-    '/'
-)
-```
-
-**File Name**: `@item().name`
-
 ---
 
 ## pl_master_ingestion — Master Orchestration Pipeline
 
-The **orchestration pipeline** that coordinates ingestion across all entities in a deterministic sequence.
+The **orchestration pipeline** that coordinates ingestion across all entities in a deterministic sequence and runs centralized governance controls.
 
 ### Purpose
 
@@ -202,105 +153,41 @@ The **orchestration pipeline** that coordinates ingestion across all entities in
 - Ensures deterministic execution order
 - Enables unified monitoring and governance
 - Simplifies scheduling and dependency management
+- Runs **post-ingestion schema compliance validation** to detect drift
 
 ### Execution Sequence
 
-The pipeline invokes `pl_ingest_generic` sequentially for each entity:
+The pipeline invokes `pl_ingest_generic` sequentially for each entity, then executes schema validation:
 
 1. **Invoke_Ingest_FX**
-   - Entity: `FX`
-   - Source: `FX-rates-since2004-dataset/`
-   - Landing: `landing/fx/`
-   - Archive: `archive/fx/`
-   - Mode: Default (no explicit INCR parameter)
+2. **Invoke_Ingest_CUSTOMER**
+3. **Invoke_Ingest_FUNDAMENTALS**
+4. **Invoke_Ingest_SECURITIES**
+5. **Invoke_Ingest_PRICES**
+6. **Invoke_Ingest_PRICES_SPLIT_ADJUSTED**
+7. **Invoke_Ingest_USER**
+8. **Invoke_Ingest_ETF**
+9. **Invoke_Ingest_STOCK**
+10. **Invoke_Ingest_CARD**
+11. **Invoke_Ingest_MCC**
+12. **Invoke_Ingest_TRANSACTION** *(if included in your master pipeline)*
+13. **Execute_Notebook_Schema_Validation** (Execute Notebook Activity)
+   - **Notebook**: `nb_validate_bronze_schema_registry`
+   - **Purpose**:
+     - Loads YAML-based Bronze Schema Registry contracts (one per entity)
+     - Compares registry schema vs live Delta table schema (names, types, optional order)
+     - Writes results to: `tech_schema_compliance`
+   - **Output**:
+     - Row-per-entity compliance status: PASS / FAIL (and diffs)
+     - Time-stamped run audit trail for governance
 
-2. **Invoke_Ingest_CUST** (depends on FX success)
-   - Entity: `CUSTOMER`
-   - Source: `customer_churn/`
-   - Landing: `landing/customer/`
-   - Archive: `archive/customer/`
-   - Mode: `INCR`, Watermark: 2 days
-
-3. **Invoke_Ingest_FUNDAMENTALS** (depends on CUST success)
-   - Entity: `FUNDAMENTALS`
-   - Source: `NYSE-dataset/fundamentals/`
-   - Landing: `landing/fundamentals/`
-   - Archive: `archive/fundamentals/`
-   - Mode: `INCR`, Watermark: 2 days
-
-4. **Invoke_Ingest_SECURITIES** (depends on FUNDAMENTALS success)
-   - Entity: `SECURITIES`
-   - Source: `NYSE-dataset/securities/`
-   - Landing: `landing/securities/`
-   - Archive: `archive/securities/`
-   - Mode: `INCR`, Watermark: 2 days
-
-5. **Invoke_Ingest_PRICES** (depends on SECURITIES success)
-   - Entity: `PRICES`
-   - Source: `NYSE-dataset/prices/`
-   - Landing: `landing/prices/`
-   - Archive: `archive/prices/`
-   - Mode: `INCR`, Watermark: 2 days
-
-6. **Invoke_Ingest_PRICES_SPLIT_ADJUSTED** (depends on PRICES success)
-   - Entity: `PRICES_SPLIT_ADJUSTED`
-   - Source: `NYSE-dataset/prices-split/`
-   - Landing: `landing/prices-split/`
-   - Archive: `archive/prices-split/`
-   - Mode: `INCR`, Watermark: 2 days
-
-7. **Invoke_Ingest_USER** (depends on PRICES_SPLIT_ADJUSTED success)
-   - Entity: `USER`
-   - Source: `financial-transactions-dataset/users/`
-   - Landing: `landing/user/`
-   - Archive: `archive/user/`
-   - Mode: `INCR`, Watermark: 2 days
-
-8. **Invoke_Ingest_ETF** (depends on USER success)
-   - Entity: `ETF`
-   - Source: `stock-market-datasets/etf/`
-   - Landing: `landing/etf/`
-   - Archive: `archive/etf/`
-   - Mode: `INCR`, Watermark: 2 days
-
-9. **Invoke_Ingest_STOCK** (depends on ETF success)
-   - Entity: `STOCK`
-   - Source: `stock-market-datasets/stock/`
-   - Landing: `landing/stock/`
-   - Archive: `archive/stock/`
-   - Mode: `INCR`, Watermark: 2 days
-
-10. **Invoke_Ingest_CARD** (depends on STOCK success)
-    - Entity: `CARD`
-    - Source: `financial-transactions-dataset/cards/`
-    - Landing: `landing/card/`
-    - Archive: `archive/card/`
-    - Mode: `INCR`, Watermark: 2 days
-
-11. **Invoke_Ingest_MCC** (depends on CARD success)
-    - Entity: `MCC`
-    - Source: `financial-transactions-dataset/mcc/`
-    - Landing: `landing/mcc/`
-    - Archive: `archive/mcc/`
-    - Mode: `INCR`, Watermark: 2 days
-
-### Pipeline Configuration
-
-- **Pipeline ID**: `c9c5153d-3cc9-4e6b-9367-06627f30eb09` (pl_ingest_generic)
-- **Workspace ID**: `eb329c81-2277-4112-8f23-571b924dcd04`
-- **Connection**: `80bdbe4a-70d4-49be-bad9-f7ff3e0be25b`
-- **Wait on Completion**: `true` (synchronous execution)
-- **Retry Policy**: 0 retries, 30 seconds interval, 12 hours timeout
+> Governance stance: This validation step is **non-blocking** by default (observability-first). It provides drift detection and audit evidence without destabilizing ingestion.
 
 ### Dependency Chain
 
 Each entity ingestion depends on the **success** of the previous entity. If any entity fails, subsequent entities are **not executed**.
 
-This ensures:
-- Data consistency across related entities
-- Clear failure isolation
-- Predictable execution order
-- Easier troubleshooting (know exactly where pipeline stopped)
+Schema validation runs **after** the ingestion chain completes successfully (or can be configured to run also on partial completion depending on your operational preference).
 
 ---
 
@@ -309,21 +196,18 @@ This ensures:
 ### Landing Zone
 - **Purpose**: Temporary staging area for raw files
 - **Location**: `Files/landing/<entity>/yyyy-MM-dd/`
-- **Format**: Binary (original file format)
 - **Lifecycle**: Files remain until successfully processed and archived
 
 ### Bronze Layer
-- **Purpose**: Typed, validated Delta tables
+- **Purpose**: Typed, standardized Delta tables (append-only)
 - **Location**: `Tables/bronze_<entity>_raw`
-- **Format**: Delta Lake (Parquet)
-- **Schema**: Enforced with technical metadata columns
-- **Lifecycle**: Permanent storage, append-only
+- **Schema**: Frozen via Schema Registry + monitored via compliance notebook
+- **Lifecycle**: Append-only, governed retention/compaction policies apply
 
 ### Archive Zone
 - **Purpose**: Immutable audit trail and reprocessing capability
 - **Location**: `Files/archive/<entity>/yyyy-MM-dd/`
-- **Format**: Binary (original file format)
-- **Lifecycle**: Permanent retention for compliance
+- **Lifecycle**: Long retention for compliance
 
 ---
 
@@ -331,42 +215,23 @@ This ensures:
 
 ### Manifest Table (`tech_ingestion_manifest`)
 - **Purpose**: File-level lineage and incremental ingestion tracking
-- **Records**: File path, source name, size, modified datetime, ingestion status, execution context
-- **Enables**: Incremental ingestion, error diagnosis, lineage reconstruction
+- **Enables**: Incremental ingestion, diagnostics, lineage reconstruction
 
 ### Ingestion Log Table (`tech_ingestion_log`)
 - **Purpose**: Run-level metrics and SLA tracking
-- **Records**: Execution date, entity, file counts, processed/failed counts, final status, ingestion mode
 - **Enables**: Operational dashboards, SLA monitoring, failure diagnostics
 
----
-
-## Pipeline Dependencies
-
-1. **Bronze Ingestion** (pl_master_ingestion → pl_ingest_generic)
-   - Runs first to populate raw data
-   - All entities processed sequentially
-
-2. **Silver Transformation**
-   - Runs after Bronze ingestion completes
-   - Transforms raw data into cleansed, business-ready format
-
-3. **Gold Aggregation**
-   - Runs after Silver transformations
-   - Creates aggregated, analytical datasets
-
-4. **Warehouse Load**
-   - Runs after Gold aggregations
-   - Loads data into Data Warehouse for reporting
-
----
-
-## Schedule Recommendations
-
-- **Daily**: 01:00 UTC - Bronze incremental ingestion (pl_master_ingestion)
-- **Daily**: 03:00 UTC - Silver transformations
-- **Daily**: 05:00 UTC - Gold aggregations
-- **Daily**: 07:00 UTC - Warehouse refresh
+### Schema Compliance Table (`tech_schema_compliance`) — NEW
+- **Purpose**: Bronze contract enforcement via continuous drift detection
+- **Written by**: `nb_validate_bronze_schema_registry` (executed from `pl_master_ingestion`)
+- **Records** (typical):
+  - `run_ts_utc`, `entity`, `table_name`
+  - `compliance_status` (PASS/FAIL)
+  - `missing_columns`, `extra_columns`, `type_mismatches`, `order_mismatch`
+- **Enables**:
+  - Continuous governance monitoring in Power BI
+  - Evidence for “Bronze layer frozen” statements
+  - Safe evolution via versioned registry updates
 
 ---
 
@@ -374,22 +239,27 @@ This ensures:
 
 To onboard a new entity:
 
-1. **Add entity-specific logic** in `nb_load_generic_bronze` notebook
-2. **Create Bronze table**: `bronze_<entity>_raw` with appropriate schema
-3. **Add invocation** in `pl_master_ingestion` with entity-specific parameters
-4. **Configure paths**: Source, Landing, Archive paths in S3/Lakehouse
+1. Add entity logic in `nb_load_generic_bronze`
+2. Create Bronze table `bronze_<entity>_raw` with correct schema
+3. Add YAML contract to the Schema Registry (`governance/schema_registry/bronze/<entity>.yaml`)
+4. Add invocation in `pl_master_ingestion`
+5. Run `pl_master_ingestion` and verify:
+   - ingestion logs in `tech_ingestion_log`
+   - file lineage in `tech_ingestion_manifest`
+   - schema compliance result in `tech_schema_compliance` (PASS)
 
-**No pipeline duplication required** — the generic pipeline handles all entities.
+No pipeline duplication required.
 
 ---
 
 ## Key Features
 
-✅ **Unified Framework**: Single pipeline for all entities  
-✅ **Parameter-Driven**: Fully configurable via parameters  
-✅ **Incremental Ingestion**: Manifest-based change detection  
-✅ **Failure Isolation**: Single file failures don't stop entire run  
-✅ **Retry Mechanisms**: Resilient to transient failures  
-✅ **Audit Trail**: Complete manifest and logging  
-✅ **Deterministic Execution**: Sequential processing ensures consistency  
-✅ **Extensible**: Easy onboarding of new entities  
+✅ Unified Framework (single generic pipeline)  
+✅ Parameter-driven ingestion  
+✅ Manifest-based incremental processing  
+✅ Failure isolation (file-level)  
+✅ Retry mechanisms  
+✅ Audit trail (manifest + archive)  
+✅ Deterministic orchestration (sequential execution)  
+✅ **Schema Registry governance (YAML contracts)**  
+✅ **Post-ingestion schema compliance validation (nb_validate_bronze_schema_registry → tech_schema_compliance)**

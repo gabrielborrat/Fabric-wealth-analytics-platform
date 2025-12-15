@@ -389,6 +389,29 @@
                 "externalReferences": {
                     "connection": "80bdbe4a-70d4-49be-bad9-f7ff3e0be25b"
                 }
+            },
+            {
+                "name": "ValidateSchemasRegistry",
+                "type": "TridentNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "Invoke_Ingest_MCC",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "notebookId": "18c0ad38-6cbd-461f-bc8a-4c23663588fe",
+                    "workspaceId": "300f0249-d03f-436c-97fc-5b5940cc3aa3"
+                }
             }
         ],
         "lastModifiedByObjectId": "871e52e6-9b89-4437-9ee4-ef6cc511763d",
