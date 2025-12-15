@@ -1,0 +1,52 @@
+registry_version: "1.0"
+layer: "BRONZE"
+status: "APPROVED"
+entity: "PRICES"
+table_name: "bronze_prices_raw"
+description: "Raw daily prices per symbol; schema aligned with Fabric Delta table."
+
+keys:
+  natural_key:
+    - "symbol"
+    - "date"
+
+business_columns:
+  - name: "date"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "symbol"
+    type: "STRING"
+    nullable: true
+  - name: "open"
+    type: "DOUBLE"
+    nullable: true
+  - name: "close"
+    type: "DOUBLE"
+    nullable: true
+  - name: "low"
+    type: "DOUBLE"
+    nullable: true
+  - name: "high"
+    type: "DOUBLE"
+    nullable: true
+  - name: "volume"
+    type: "DOUBLE"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: true
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: true
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "entity"
+    type: "STRING"
+    nullable: true
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false

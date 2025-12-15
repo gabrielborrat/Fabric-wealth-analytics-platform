@@ -1,0 +1,72 @@
+registry_version: "1.0"
+layer: "BRONZE"
+status: "APPROVED"
+entity: "USER"
+table_name: "bronze_user_raw"
+description: "Raw users dataset; schema aligned with Fabric Delta table."
+
+keys:
+  natural_key:
+    - "id"
+
+business_columns:
+  - name: "id"
+    type: "BIGINT"
+    nullable: true
+  - name: "current_age"
+    type: "INT"
+    nullable: true
+  - name: "retirement_age"
+    type: "INT"
+    nullable: true
+  - name: "birth_year"
+    type: "INT"
+    nullable: true
+  - name: "birth_month"
+    type: "INT"
+    nullable: true
+  - name: "gender"
+    type: "STRING"
+    nullable: true
+  - name: "address"
+    type: "STRING"
+    nullable: true
+  - name: "latitude"
+    type: "DOUBLE"
+    nullable: true
+  - name: "longitude"
+    type: "DOUBLE"
+    nullable: true
+  - name: "per_capita_income"
+    type: "DOUBLE"
+    nullable: true
+  - name: "yearly_income"
+    type: "DOUBLE"
+    nullable: true
+  - name: "total_debt"
+    type: "DOUBLE"
+    nullable: true
+  - name: "credit_score"
+    type: "INT"
+    nullable: true
+  - name: "num_credit_cards"
+    type: "INT"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: true
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: true
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "entity"
+    type: "STRING"
+    nullable: true
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false

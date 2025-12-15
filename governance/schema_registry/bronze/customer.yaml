@@ -1,0 +1,72 @@
+registry_version: "1.0"
+layer: "BRONZE"
+status: "APPROVED"
+entity: "CUSTOMER"
+table_name: "bronze_customers_raw"
+description: "Raw customer (churn-style) dataset; typed; no deduplication or business rules applied in Bronze."
+
+keys:
+  natural_key:
+    - "customer_id"
+
+business_columns:
+  - name: "row_number"
+    type: "INT"
+    nullable: true
+  - name: "customer_id"
+    type: "BIGINT"
+    nullable: true
+  - name: "surname"
+    type: "STRING"
+    nullable: true
+  - name: "credit_score"
+    type: "INT"
+    nullable: true
+  - name: "geography"
+    type: "STRING"
+    nullable: true
+  - name: "gender"
+    type: "STRING"
+    nullable: true
+  - name: "age"
+    type: "INT"
+    nullable: true
+  - name: "tenure"
+    type: "INT"
+    nullable: true
+  - name: "balance"
+    type: "DOUBLE"
+    nullable: true
+  - name: "num_of_products"
+    type: "INT"
+    nullable: true
+  - name: "has_cr_card"
+    type: "INT"
+    nullable: true
+  - name: "is_active_member"
+    type: "INT"
+    nullable: true
+  - name: "estimated_salary"
+    type: "DOUBLE"
+    nullable: true
+  - name: "exited"
+    type: "INT"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: true
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: true
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "entity"
+    type: "STRING"
+    nullable: true
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false

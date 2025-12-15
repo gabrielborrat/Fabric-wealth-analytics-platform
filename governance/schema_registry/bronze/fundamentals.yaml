@@ -1,0 +1,268 @@
+registry_version: "1.0"
+layer: "BRONZE"
+status: "APPROVED"
+entity: "FUNDAMENTALS"
+table_name: "bronze_fundamentals_raw"
+description: "Raw fundamentals wide table; schema aligned with Fabric Delta table. All numeric metrics are stored as DOUBLE."
+
+keys:
+  natural_key:
+    - "ticker_symbol"
+    - "period_ending"
+
+business_columns:
+  - name: "unnamed_0"
+    type: "BIGINT"
+    nullable: true
+  - name: "ticker_symbol"
+    type: "STRING"
+    nullable: true
+  - name: "period_ending"
+    type: "DATE"
+    nullable: true
+  - name: "accounts_payable"
+    type: "DOUBLE"
+    nullable: true
+  - name: "accounts_receivable"
+    type: "DOUBLE"
+    nullable: true
+  - name: "add_l_income_expense_items"
+    type: "DOUBLE"
+    nullable: true
+  - name: "after_tax_roe"
+    type: "DOUBLE"
+    nullable: true
+  - name: "capital_expenditures"
+    type: "DOUBLE"
+    nullable: true
+  - name: "capital_surplus"
+    type: "DOUBLE"
+    nullable: true
+  - name: "cash_ratio"
+    type: "DOUBLE"
+    nullable: true
+  - name: "cash_and_cash_equivalents"
+    type: "DOUBLE"
+    nullable: true
+  - name: "changes_in_inventories"
+    type: "DOUBLE"
+    nullable: true
+  - name: "common_stocks"
+    type: "DOUBLE"
+    nullable: true
+  - name: "cost_of_revenue"
+    type: "DOUBLE"
+    nullable: true
+  - name: "current_ratio"
+    type: "DOUBLE"
+    nullable: true
+  - name: "deferred_asset_charges"
+    type: "DOUBLE"
+    nullable: true
+  - name: "deferred_liability_charges"
+    type: "DOUBLE"
+    nullable: true
+  - name: "depreciation"
+    type: "DOUBLE"
+    nullable: true
+  - name: "earnings_before_interest_and_tax"
+    type: "DOUBLE"
+    nullable: true
+  - name: "earnings_before_tax"
+    type: "DOUBLE"
+    nullable: true
+  - name: "effect_of_exchange_rate"
+    type: "DOUBLE"
+    nullable: true
+  - name: "equity_earnings_loss_unconsolidated_subsidiary"
+    type: "DOUBLE"
+    nullable: true
+  - name: "fixed_assets"
+    type: "DOUBLE"
+    nullable: true
+  - name: "goodwill"
+    type: "DOUBLE"
+    nullable: true
+  - name: "gross_margin"
+    type: "DOUBLE"
+    nullable: true
+  - name: "gross_profit"
+    type: "DOUBLE"
+    nullable: true
+  - name: "income_tax"
+    type: "DOUBLE"
+    nullable: true
+  - name: "intangible_assets"
+    type: "DOUBLE"
+    nullable: true
+  - name: "interest_expense"
+    type: "DOUBLE"
+    nullable: true
+  - name: "inventory"
+    type: "DOUBLE"
+    nullable: true
+  - name: "investments"
+    type: "DOUBLE"
+    nullable: true
+  - name: "liabilities"
+    type: "DOUBLE"
+    nullable: true
+  - name: "long_term_debt"
+    type: "DOUBLE"
+    nullable: true
+  - name: "long_term_investments"
+    type: "DOUBLE"
+    nullable: true
+  - name: "minority_interest"
+    type: "DOUBLE"
+    nullable: true
+  - name: "misc_stocks"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_borrowings"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_cash_flow"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_cash_flow_operating"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_cash_flows_financing"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_cash_flows_investing"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_income"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_income_adjustments"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_income_applicable_to_common_shareholders"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_income_cont_operations"
+    type: "DOUBLE"
+    nullable: true
+  - name: "net_receivables"
+    type: "DOUBLE"
+    nullable: true
+  - name: "non_recurring_items"
+    type: "DOUBLE"
+    nullable: true
+  - name: "operating_income"
+    type: "DOUBLE"
+    nullable: true
+  - name: "operating_margin"
+    type: "DOUBLE"
+    nullable: true
+  - name: "other_assets"
+    type: "DOUBLE"
+    nullable: true
+  - name: "other_current_assets"
+    type: "DOUBLE"
+    nullable: true
+  - name: "other_current_liabilities"
+    type: "DOUBLE"
+    nullable: true
+  - name: "other_equity"
+    type: "DOUBLE"
+    nullable: true
+  - name: "other_financing_activities"
+    type: "DOUBLE"
+    nullable: true
+  - name: "other_investing_activities"
+    type: "DOUBLE"
+    nullable: true
+  - name: "other_liabilities"
+    type: "DOUBLE"
+    nullable: true
+  - name: "other_operating_activities"
+    type: "DOUBLE"
+    nullable: true
+  - name: "other_operating_items"
+    type: "DOUBLE"
+    nullable: true
+  - name: "pre_tax_margin"
+    type: "DOUBLE"
+    nullable: true
+  - name: "pre_tax_roe"
+    type: "DOUBLE"
+    nullable: true
+  - name: "profit_margin"
+    type: "DOUBLE"
+    nullable: true
+  - name: "quick_ratio"
+    type: "DOUBLE"
+    nullable: true
+  - name: "research_and_development"
+    type: "DOUBLE"
+    nullable: true
+  - name: "retained_earnings"
+    type: "DOUBLE"
+    nullable: true
+  - name: "sale_and_purchase_of_stock"
+    type: "DOUBLE"
+    nullable: true
+  - name: "sales_general_and_admin"
+    type: "DOUBLE"
+    nullable: true
+  - name: "short_term_debt_current_portion_of_long_term_debt"
+    type: "DOUBLE"
+    nullable: true
+  - name: "short_term_investments"
+    type: "DOUBLE"
+    nullable: true
+  - name: "total_assets"
+    type: "DOUBLE"
+    nullable: true
+  - name: "total_current_assets"
+    type: "DOUBLE"
+    nullable: true
+  - name: "total_current_liabilities"
+    type: "DOUBLE"
+    nullable: true
+  - name: "total_equity"
+    type: "DOUBLE"
+    nullable: true
+  - name: "total_liabilities"
+    type: "DOUBLE"
+    nullable: true
+  - name: "total_liabilities_and_equity"
+    type: "DOUBLE"
+    nullable: true
+  - name: "total_revenue"
+    type: "DOUBLE"
+    nullable: true
+  - name: "treasury_stock"
+    type: "DOUBLE"
+    nullable: true
+  - name: "for_year"
+    type: "DOUBLE"
+    nullable: true
+  - name: "earnings_per_share"
+    type: "DOUBLE"
+    nullable: true
+  - name: "estimated_shares_outstanding"
+    type: "DOUBLE"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: true
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: true
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "entity"
+    type: "STRING"
+    nullable: true
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false

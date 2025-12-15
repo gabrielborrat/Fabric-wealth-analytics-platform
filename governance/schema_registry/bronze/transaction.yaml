@@ -1,0 +1,66 @@
+registry_version: "1.0"
+layer: "BRONZE"
+status: "APPROVED"
+entity: "TRANSACTION"
+table_name: "bronze_transaction_raw"
+description: "Raw card transaction events; schema aligned with Fabric Delta table."
+
+keys:
+  natural_key:
+    - "id"
+
+business_columns:
+  - name: "id"
+    type: "INT"
+    nullable: true
+  - name: "date"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "client_id"
+    type: "INT"
+    nullable: true
+  - name: "card_id"
+    type: "INT"
+    nullable: true
+  - name: "amount"
+    type: "STRING"
+    nullable: true
+  - name: "use_chip"
+    type: "STRING"
+    nullable: true
+  - name: "merchant_id"
+    type: "INT"
+    nullable: true
+  - name: "merchant_city"
+    type: "STRING"
+    nullable: true
+  - name: "merchant_state"
+    type: "STRING"
+    nullable: true
+  - name: "zip"
+    type: "DOUBLE"
+    nullable: true
+  - name: "mcc"
+    type: "INT"
+    nullable: true
+  - name: "errors"
+    type: "STRING"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: true
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: true
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "entity"
+    type: "STRING"
+    nullable: true
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false

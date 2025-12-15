@@ -1,0 +1,55 @@
+registry_version: "1.0"
+layer: "BRONZE"
+status: "APPROVED"
+entity: "ETF"
+table_name: "bronze_etf_raw"
+description: "Raw daily ETF time series; schema aligned with Fabric Delta table (ticker read from file content)."
+
+keys:
+  natural_key:
+    - "ticker"
+    - "date"
+
+business_columns:
+  - name: "ticker"
+    type: "STRING"
+    nullable: true
+  - name: "date"
+    type: "DATE"
+    nullable: true
+  - name: "open"
+    type: "DOUBLE"
+    nullable: true
+  - name: "high"
+    type: "DOUBLE"
+    nullable: true
+  - name: "low"
+    type: "DOUBLE"
+    nullable: true
+  - name: "close"
+    type: "DOUBLE"
+    nullable: true
+  - name: "volume"
+    type: "BIGINT"
+    nullable: true
+  - name: "open_int"
+    type: "BIGINT"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: true
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: true
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "entity"
+    type: "STRING"
+    nullable: true
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false

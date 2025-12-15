@@ -1,0 +1,46 @@
+registry_version: "1.0"
+layer: "BRONZE"
+status: "APPROVED"
+entity: "FX"
+table_name: "bronze_fx_raw"
+description: "Raw FX rates dataset (USD-based); schema aligned with Fabric Delta table."
+
+keys:
+  natural_key:
+    - "currency"
+    - "date"
+
+business_columns:
+  - name: "currency"
+    type: "STRING"
+    nullable: true
+  - name: "base_currency"
+    type: "STRING"
+    nullable: true
+  - name: "currency_name"
+    type: "STRING"
+    nullable: true
+  - name: "rate_vs_usd"
+    type: "DOUBLE"
+    nullable: true
+  - name: "date"
+    type: "DATE"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: true
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: true
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "entity"
+    type: "STRING"
+    nullable: true
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false

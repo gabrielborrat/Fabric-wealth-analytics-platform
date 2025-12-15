@@ -1,0 +1,33 @@
+registry_version: "1.0"
+layer: "BRONZE"
+lakehouse: "lh_wm_core"
+
+standard:
+  naming:
+    case: "lower"
+    format: "snake_case"
+  schema_evolution:
+    merge_schema_allowed: false
+    allow_additional_columns: false
+  write_mode:
+    delta: "append_only"
+  partitioning_recommendation:
+    column: "ingestion_date"
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: false
+    description: "Full source file path or file name used for ingestion"
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: false
+    description: "Execution date of the ingestion run"
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: false
+    description: "Timestamp when the record was written"
+  - name: "entity"
+    type: "STRING"
+    nullable: false
+    description: "Logical entity name in uppercase"

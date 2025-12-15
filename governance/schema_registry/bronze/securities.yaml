@@ -1,0 +1,54 @@
+registry_version: "1.0"
+layer: "BRONZE"
+status: "APPROVED"
+entity: "SECURITIES"
+table_name: "bronze_securities_raw"
+description: "Raw securities reference dataset; schema aligned with Fabric Delta table."
+
+keys:
+  natural_key:
+    - "ticker_symbol"
+
+business_columns:
+  - name: "ticker_symbol"
+    type: "STRING"
+    nullable: true
+  - name: "security"
+    type: "STRING"
+    nullable: true
+  - name: "sec_filings"
+    type: "STRING"
+    nullable: true
+  - name: "gics_sector"
+    type: "STRING"
+    nullable: true
+  - name: "gics_sub_industry"
+    type: "STRING"
+    nullable: true
+  - name: "address_of_headquarters"
+    type: "STRING"
+    nullable: true
+  - name: "date_first_added"
+    type: "DATE"
+    nullable: true
+  - name: "cik"
+    type: "STRING"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: true
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: true
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: true
+  - name: "entity"
+    type: "STRING"
+    nullable: true
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false
