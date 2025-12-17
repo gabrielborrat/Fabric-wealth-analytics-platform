@@ -1,0 +1,41 @@
+registry_version: "1.0"
+layer: "SILVER"
+status: "APPROVED"
+entity: "MCC"
+table_name: "silver_mcc"
+description: "Merchant Category Codes reference cleaned and normalized for analytical joins."
+
+keys:
+  natural_key:
+    - "mcc_code"
+
+business_columns:
+  - name: "mcc_code"
+    type: "STRING"
+    nullable: false
+  - name: "mcc_description"
+    type: "STRING"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: false
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: false
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: false
+  - name: "record_hash"
+    type: "STRING"
+    nullable: false
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false
+
+deduplication:
+  keys: ["mcc_code"]
+  order_by: "ingestion_ts"
+  strategy: "keep_latest"

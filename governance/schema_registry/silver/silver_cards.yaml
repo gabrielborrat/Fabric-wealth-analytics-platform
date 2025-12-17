@@ -1,0 +1,77 @@
+registry_version: "1.0"
+layer: "SILVER"
+status: "APPROVED"
+entity: "CARD"
+table_name: "silver_cards"
+description: "Cards dataset cleaned and typed; booleans parsed; dates normalized; aligned for joins with transactions/users."
+
+keys:
+  natural_key:
+    - "card_id"
+
+business_columns:
+  - name: "card_id"
+    type: "BIGINT"
+    nullable: false
+  - name: "client_id"
+    type: "BIGINT"
+    nullable: true
+  - name: "card_brand"
+    type: "STRING"
+    nullable: true
+  - name: "card_type"
+    type: "STRING"
+    nullable: true
+  - name: "card_number"
+    type: "STRING"
+    nullable: true
+  - name: "expires_raw"
+    type: "STRING"
+    nullable: true
+  - name: "expires_month"
+    type: "DATE"
+    nullable: true
+  - name: "cvv"
+    type: "STRING"
+    nullable: true
+  - name: "has_chip"
+    type: "BOOLEAN"
+    nullable: true
+  - name: "num_cards_issued"
+    type: "INT"
+    nullable: true
+  - name: "credit_limit"
+    type: "DECIMAL(18,2)"
+    nullable: true
+  - name: "acct_open_date"
+    type: "DATE"
+    nullable: true
+  - name: "year_pin_last_changed"
+    type: "INT"
+    nullable: true
+  - name: "card_on_dark_web"
+    type: "BOOLEAN"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: false
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: false
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: false
+  - name: "record_hash"
+    type: "STRING"
+    nullable: false
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false
+
+deduplication:
+  keys: ["card_id"]
+  order_by: "ingestion_ts"
+  strategy: "keep_latest"

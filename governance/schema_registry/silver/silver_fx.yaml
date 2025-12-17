@@ -1,46 +1,55 @@
 registry_version: "1.0"
-layer: "BRONZE"
+layer: "SILVER"
 status: "APPROVED"
 entity: "FX"
-table_name: "bronze_fx_raw"
-description: "Raw FX rates dataset (USD-based); schema aligned with Fabric Delta table."
+table_name: "silver_fx_rates"
+description: "Daily FX rates (USD-based) cleaned, typed, deduplicated and partitioned monthly for analytics."
 
 keys:
   natural_key:
+    - "base_currency"
     - "currency"
-    - "date"
+    - "fx_date"
 
 business_columns:
-  - name: "currency"
+  - name: "base_currency"
     type: "STRING"
     nullable: false
-  - name: "base_currency"
+  - name: "currency"
     type: "STRING"
     nullable: false
   - name: "currency_name"
     type: "STRING"
     nullable: true
-  - name: "rate_vs_usd"
-    type: "DOUBLE"
-    nullable: true
-  - name: "date"
+  - name: "fx_date"
     type: "DATE"
+    nullable: false
+  - name: "fx_month"
+    type: "DATE"
+    nullable: false
+  - name: "rate_vs_usd"
+    type: "DECIMAL(18,8)"
     nullable: false
 
 technical_columns:
   - name: "source_file"
     type: "STRING"
-    nullable: true
+    nullable: false
   - name: "ingestion_date"
     type: "DATE"
-    nullable: true
+    nullable: false
   - name: "ingestion_ts"
     type: "TIMESTAMP"
-    nullable: true
-  - name: "entity"
+    nullable: false
+  - name: "record_hash"
     type: "STRING"
     nullable: false
 
 constraints:
   allow_additional_columns: false
   merge_schema_allowed: false
+
+partitioning:
+  column: "fx_month"
+  type: "DATE"
+  max_distinct_threshold: 240

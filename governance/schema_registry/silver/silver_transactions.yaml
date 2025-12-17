@@ -1,0 +1,173 @@
+version: "1.0"
+layer: "silver"
+table: "silver_transactions"
+description: >
+  Silver table containing normalized, deduplicated, and audit-ready
+  card transaction events. One row represents one transaction.
+
+grain: "1 row = 1 card transaction"
+
+source:
+  layer: "bronze"
+  table: "bronze_transactions_raw"
+  system: "kaggle"
+  ingestion_mode: "batch"
+
+partitioning:
+  strategy: "time"
+  column: "txn_month"
+  type: "date"
+  granularity: "month"
+  description: "First day of transaction month (YYYY-MM-01)"
+
+deduplication:
+  strategy: "latest_record"
+  keys:
+    - "transaction_id"
+  order_by: "ingestion_ts"
+  description: >
+    In case of replays or duplicates, only the most recent
+    record per transaction_id is kept.
+
+columns:
+
+  # --------------------------------------------------
+  # 1. Identifiers & transaction time
+  # --------------------------------------------------
+  - name: "transaction_id"
+    type: "bigint"
+    nullable: false
+    description: "Unique transaction identifier from source system"
+
+  - name: "txn_ts"
+    type: "timestamp"
+    nullable: false
+    description: "Transaction timestamp (event time)"
+
+  - name: "txn_date"
+    type: "date"
+    nullable: false
+    description: "Transaction calendar date derived from txn_ts"
+
+  - name: "txn_month"
+    type: "date"
+    nullable: false
+    description: "First day of transaction month, used for partitioning"
+
+  # --------------------------------------------------
+  # 2. Business keys & analytical joins
+  # --------------------------------------------------
+  - name: "client_id"
+    type: "bigint"
+    nullable: false
+    description: "Client identifier"
+
+  - name: "card_id"
+    type: "bigint"
+    nullable: false
+    description: "Payment card identifier"
+
+  - name: "merchant_id"
+    type: "bigint"
+    nullable: false
+    description: "Merchant identifier"
+
+  - name: "mcc_code"
+    type: "string"
+    nullable: false
+    description: "Normalized Merchant Category Code (4 characters)"
+
+  # --------------------------------------------------
+  # 3. Measures & transaction attributes
+  # --------------------------------------------------
+  - name: "amount"
+    type: "decimal(18,2)"
+    nullable: false
+    description: "Transaction amount in original currency"
+
+  - name: "use_chip"
+    type: "string"
+    nullable: true
+    description: "Indicates if chip was used during transaction"
+
+  - name: "merchant_city"
+    type: "string"
+    nullable: true
+    description: "Merchant city"
+
+  - name: "merchant_state"
+    type: "string"
+    nullable: true
+    description: "Merchant state or region"
+
+  - name: "zip"
+    type: "string"
+    nullable: true
+    description: "Merchant postal code"
+
+  - name: "error_code"
+    type: "int"
+    nullable: false
+    description: "Transaction error code (0 = success)"
+
+  - name: "is_success"
+    type: "boolean"
+    nullable: false
+    description: "Derived flag indicating successful transaction"
+
+  # --------------------------------------------------
+  # 4. Technical & audit columns
+  # --------------------------------------------------
+  - name: "source_file"
+    type: "string"
+    nullable: true
+    description: "Source file name or path from ingestion layer"
+
+  - name: "ingestion_date"
+    type: "date"
+    nullable: false
+    description: "Ingestion date"
+
+  - name: "ingestion_ts"
+    type: "timestamp"
+    nullable: false
+    description: "Ingestion timestamp"
+
+  - name: "record_hash"
+    type: "string"
+    nullable: false
+    description: >
+      SHA-256 hash of key business attributes, used for
+      auditability and change detection
+
+quality_rules:
+  - rule: "transaction_id_not_null"
+    description: "transaction_id must not be null"
+
+  - rule: "txn_ts_not_null"
+    description: "txn_ts must not be null"
+
+  - rule: "txn_month_not_null"
+    description: "txn_month must not be null"
+
+  - rule: "amount_not_null"
+    description: "amount must not be null"
+
+  - rule: "partition_cardinality_limit"
+    description: >
+      Number of distinct txn_month values must remain below
+      the configured threshold (default: 240 months)
+
+consumers:
+  - layer: "gold"
+    use_cases:
+      - "daily spend facts"
+      - "monthly spend aggregation"
+      - "spend by merchant category"
+  - tool: "Power BI"
+    mode: "Direct Lake"
+
+change_management:
+  schema_evolution: "allowed"
+  backward_compatibility: "best_effort"
+  owner: "data_engineering"

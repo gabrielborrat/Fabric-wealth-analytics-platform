@@ -1,0 +1,77 @@
+registry_version: "1.0"
+layer: "SILVER"
+status: "APPROVED"
+entity: "USER"
+table_name: "silver_users"
+description: "Users dataset cleaned and typed; aligned on client_id for joins with transactions/cards."
+
+keys:
+  natural_key:
+    - "client_id"
+
+business_columns:
+  - name: "client_id"
+    type: "BIGINT"
+    nullable: false
+  - name: "current_age"
+    type: "INT"
+    nullable: true
+  - name: "retirement_age"
+    type: "INT"
+    nullable: true
+  - name: "birth_year"
+    type: "INT"
+    nullable: true
+  - name: "birth_month"
+    type: "INT"
+    nullable: true
+  - name: "gender"
+    type: "STRING"
+    nullable: true
+  - name: "address"
+    type: "STRING"
+    nullable: true
+  - name: "latitude"
+    type: "DECIMAL(9,6)"
+    nullable: true
+  - name: "longitude"
+    type: "DECIMAL(9,6)"
+    nullable: true
+  - name: "per_capita_income"
+    type: "DECIMAL(18,2)"
+    nullable: true
+  - name: "yearly_income"
+    type: "DECIMAL(18,2)"
+    nullable: true
+  - name: "total_debt"
+    type: "DECIMAL(18,2)"
+    nullable: true
+  - name: "credit_score"
+    type: "INT"
+    nullable: true
+  - name: "num_credit_cards"
+    type: "INT"
+    nullable: true
+
+technical_columns:
+  - name: "source_file"
+    type: "STRING"
+    nullable: false
+  - name: "ingestion_date"
+    type: "DATE"
+    nullable: false
+  - name: "ingestion_ts"
+    type: "TIMESTAMP"
+    nullable: false
+  - name: "record_hash"
+    type: "STRING"
+    nullable: false
+
+constraints:
+  allow_additional_columns: false
+  merge_schema_allowed: false
+
+deduplication:
+  keys: ["client_id"]
+  order_by: "ingestion_ts"
+  strategy: "keep_latest"
