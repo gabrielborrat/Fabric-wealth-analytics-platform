@@ -254,6 +254,42 @@ Reasons:
 - Ensure stable contracts for Silver & Gold  
 - Comply with financial data governance standards  
 
+## 6.1 Schema Registry & Post-Ingestion Governance
+
+While `nb_load_generic_bronze` enforces strict, deterministic schemas at write time, 
+the Bronze layer is additionally governed by an explicit **Schema Registry** and a 
+**post-ingestion schema compliance validation process**.
+
+### Schema Registry
+- Each Bronze entity has a versioned YAML contract defining:
+  - column names
+  - data types
+  - column order
+  - mandatory technical metadata fields
+- These YAML contracts represent the **frozen schema definition** for the Bronze layer.
+
+### Post-Ingestion Schema Validation
+- Schema compliance is validated by a dedicated notebook:
+  - **`nb_validate_bronze_schema_registry`**
+- This notebook:
+  1. Loads all YAML schema contracts
+  2. Reads live Delta table schemas from the Lakehouse
+  3. Compares expected vs actual schemas
+  4. Persists results into the `tech_schema_compliance` table
+
+### Design Rationale
+- Schema validation is intentionally **decoupled** from ingestion notebooks to:
+  - preserve ingestion stability
+  - avoid partial ingestion failures due to governance checks
+  - provide a centralized, cross-entity compliance view
+- This design supports progressive hardening toward stricter enforcement if required.
+
+As a result, the Bronze layer is governed through:
+- deterministic ingestion notebooks
+- explicit schema contracts
+- continuous, auditable schema compliance monitoring
+
+
 ---
 
 # 7. Writing to Bronze Tables

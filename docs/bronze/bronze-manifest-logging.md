@@ -296,7 +296,103 @@ This design supports scale, agility, and long-term maintainability.
 
 ---
 
-# 10. Conclusion
+# 10. tech_schema_compliance — Schema Registry Governance
+
+In addition to file-level lineage and run-level metrics, the Bronze layer is governed by a **Schema Registry** and a **post-ingestion schema compliance validation process**.
+
+This governance layer ensures that all Bronze Delta tables remain aligned with their approved schema contracts over time.
+
+---
+
+## 10.1 Purpose of Schema Compliance
+
+The schema compliance subsystem serves four key objectives:
+
+1. **Contract Enforcement**
+   - Each Bronze table has an explicit, versioned schema contract defined in YAML.
+   - The contract defines column names, data types, order, and technical metadata.
+
+2. **Schema Drift Detection**
+   - Detects unexpected schema changes caused by:
+     - source data changes
+     - notebook logic errors
+     - accidental schema evolution
+   - Drift is detected *after ingestion* to avoid destabilizing pipelines.
+
+3. **Audit & Evidence**
+   - Provides time-stamped evidence that Bronze schemas remain frozen and controlled.
+   - Supports internal and regulatory audits.
+
+4. **Safe Evolution**
+   - Enables controlled schema changes through explicit registry updates and versioning.
+
+---
+
+## 10.2 tech_schema_compliance Table
+
+Schema validation results are persisted in the `tech_schema_compliance` table.
+
+Each execution of the schema validation process inserts **one row per entity**, capturing the compliance status at that point in time.
+
+### Logical schema
+
+| Column | Description |
+|------|-------------|
+| **run_ts_utc** | Timestamp of the schema validation run. |
+| **layer** | Data layer validated (BRONZE). |
+| **entity** | Entity name (FX, CUSTOMER, PRICES, etc.). |
+| **table_name** | Physical Delta table name. |
+| **registry_path** | YAML contract file used for validation. |
+| **registry_status** | Declared registry status (e.g. APPROVED). |
+| **compliance_status** | PASS or FAIL. |
+| **missing_columns** | Columns expected but not present. |
+| **extra_columns** | Columns present but not in registry. |
+| **type_mismatches** | Columns with data type differences. |
+| **order_mismatch** | Indicates column order deviation. |
+| **order_details** | Expected vs actual order (if applicable). |
+
+---
+
+## 10.3 Validation Process
+
+Schema compliance is validated by the notebook:
+
+- **`nb_validate_bronze_schema_registry`**
+
+This notebook:
+1. Loads all YAML contracts from the Schema Registry
+2. Reads live Delta table schemas from the Lakehouse
+3. Compares expected vs actual schemas
+4. Writes detailed compliance results to `tech_schema_compliance`
+
+The notebook is executed **from the master orchestration pipeline** after Bronze ingestion completes.
+
+---
+
+## 10.4 Governance Model
+
+- Schema validation is **non-blocking by design**
+- Ingestion pipelines do not fail on schema drift
+- Drift is surfaced through monitoring and dashboards
+
+This approach ensures:
+- ingestion stability
+- early detection of governance issues
+- progressive hardening toward stricter enforcement if required
+
+---
+
+## 10.5 Relationship with Manifest & Log
+
+| Control Plane | Scope | Purpose |
+|--------------|-------|---------|
+| **tech_ingestion_manifest** | File-level | Lineage, incrementality, retries |
+| **tech_ingestion_log** | Run-level | Metrics, SLA, operational status |
+| **tech_schema_compliance** | Schema-level | Contract compliance, drift detection |
+
+Together, these three layers provide **complete Bronze governance coverage**.
+
+# 11. Conclusion
 
 The Manifest and Logging framework provides a **robust, auditable, and transparent ingestion governance layer** for the Wealth Management Analytics Platform.
 
