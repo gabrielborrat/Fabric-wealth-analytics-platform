@@ -1,0 +1,59 @@
+{
+    "contract_name": "silver_entity_payload",
+    "contract_version": "1.0",
+    "layer": "silver",
+    "description": "Runtime payload returned by all nb_silver_* entity notebooks",
+    "required_fields": [
+      "contract_version",
+      "layer",
+      "run_id",
+      "entity_code",
+      "load_mode",
+      "status",
+      "metrics.row_out",
+      "table.target_table",
+      "timing.started_utc",
+      "timing.ended_utc",
+      "timing.duration_ms"
+    ],
+    "schema": {
+      "contract_version": "string",
+      "layer": "string",
+      "run_id": "string",
+      "entity_code": "string",
+      "load_mode": "string",
+      "as_of_date": "string|null",
+      "status": "string",
+      "metrics": {
+        "row_in": "integer|null",
+        "row_out": "integer",
+        "partition_count": "integer",
+        "dedup_dropped": "integer"
+      },
+      "table": {
+        "target_table": "string",
+        "partition_cols": ["string"]
+      },
+      "timing": {
+        "started_utc": "string",
+        "ended_utc": "string",
+        "duration_ms": "integer"
+      },
+      "quality": {
+        "fail_fast_checks": [
+          {
+            "name": "string",
+            "passed": "boolean"
+          }
+        ]
+      },
+      "notes": {
+        "message": "string|null"
+      }
+    },
+    "compatibility_rules": {
+      "breaking_change": "requires contract_version major bump",
+      "additive_change": "allowed in metrics/quality/notes"
+    }
+  }
+  
