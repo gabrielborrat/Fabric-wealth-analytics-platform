@@ -2,7 +2,12 @@
 
 ## Pipeline Orchestration
 
-This document describes the Fabric pipelines used for data orchestration in the Wealth Management Analytics Platform.
+This document describes the Fabric pipelines used for data orchestration in the Wealth Management Analytics Platform, across **all layers**:
+
+- **Bronze**: ingestion (S3 → Landing → Bronze tables + manifest + archive)
+- **Silver**: transformations (Bronze → Silver) via dispatcher notebook
+- **Gold**: dimensional model (Silver → Gold) via dispatcher notebook
+- **DWH**: SQL Warehouse refresh (monthly E2E orchestration + job registry execution)
 
 ---
 
@@ -16,7 +21,7 @@ In addition, the Bronze layer is governed by a **Schema Registry** (YAML contrac
 
 ---
 
-## pl_ingest_generic — Generic Ingestion Pipeline
+## pl_bronze_ingest_generic — Generic Ingestion Pipeline
 
 The **core reusable pipeline** that handles ingestion for all entities.
 
@@ -24,10 +29,10 @@ The **core reusable pipeline** that handles ingestion for all entities.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `p_Entity` | string | "CARD" | Entity identifier (FX, CUSTOMER, STOCK, ETF, USER, CARD, MCC, PRICES, SECURITIES, FUNDAMENTALS, PRICES_SPLIT_ADJUSTED) |
-| `p_SourcePath` | string | "stock-market-datasets/etf/" | Source path in S3 bucket (e.g., "FX-rates-since2004-dataset/", "NYSE-dataset/prices/") |
-| `p_LandingPath` | string | "landing/etf/" | Landing zone path in Lakehouse (temporary staging) |
-| `p_ArchivePath` | string | "archive/etf/" | Archive zone path in Lakehouse (immutable storage) |
+| `p_Entity` | string | "FX" | Entity identifier (FX, CUSTOMER, STOCK, ETF, USER, CARD, MCC, TRANSACTION, PRICES, SECURITIES, FUNDAMENTALS, PRICES_SPLIT_ADJUSTED) |
+| `p_SourcePath` | string | "FX-rates-since2004-dataset/" | Source path in S3 bucket (example: `"customer_churn/"`, `"NYSE-dataset/prices/"`) |
+| `p_LandingPath` | string | "landing/fx/" | Landing zone path in Lakehouse (temporary staging) |
+| `p_ArchivePath` | string | "archive/fx/" | Archive zone path in Lakehouse (immutable storage) |
 | `p_IngestionMode` | string | "INCR" | Ingestion mode: "FULL" or "INCR" (incremental based on manifest) |
 | `p_WatermarkDays` | int | 2 | Number of days for watermark-based filtering (incremental mode) |
 
@@ -143,7 +148,7 @@ For each file in `v_FilesToProcess`:
 
 ---
 
-## pl_master_ingestion — Master Orchestration Pipeline
+## pl_master_ingestion (pl_bronze_master.json) — Master Orchestration Pipeline
 
 The **orchestration pipeline** that coordinates ingestion across all entities in a deterministic sequence and runs centralized governance controls.
 
@@ -157,7 +162,7 @@ The **orchestration pipeline** that coordinates ingestion across all entities in
 
 ### Execution Sequence
 
-The pipeline invokes `pl_ingest_generic` sequentially for each entity, then executes schema validation:
+The pipeline invokes `pl_bronze_ingest_generic` sequentially for each entity, then executes schema validation:
 
 1. **Invoke_Ingest_FX**
 2. **Invoke_Ingest_CUSTOMER**
@@ -170,9 +175,8 @@ The pipeline invokes `pl_ingest_generic` sequentially for each entity, then exec
 9. **Invoke_Ingest_STOCK**
 10. **Invoke_Ingest_CARD**
 11. **Invoke_Ingest_MCC**
-12. **Invoke_Ingest_TRANSACTION** *(if included in your master pipeline)*
-13. **Execute_Notebook_Schema_Validation** (Execute Notebook Activity)
-   - **Notebook**: `nb_validate_bronze_schema_registry`
+12. **ValidateSchemasRegistry** (TridentNotebook Activity)
+   - **Notebook**: `nb_validate_bronze_schema_registry` (see governance/runtime docs)
    - **Purpose**:
      - Loads YAML-based Bronze Schema Registry contracts (one per entity)
      - Compares registry schema vs live Delta table schema (names, types, optional order)
@@ -223,7 +227,7 @@ Schema validation runs **after** the ingestion chain completes successfully (or 
 
 ### Schema Compliance Table (`tech_schema_compliance`) — NEW
 - **Purpose**: Bronze contract enforcement via continuous drift detection
-- **Written by**: `nb_validate_bronze_schema_registry` (executed from `pl_master_ingestion`)
+- **Written by**: `nb_validate_bronze_schema_registry` (executed from `pl_master_ingestion` in `01-BRONZE/pipelines/pl_bronze_master.json`)
 - **Records** (typical):
   - `run_ts_utc`, `entity`, `table_name`
   - `compliance_status` (PASS/FAIL)
@@ -241,8 +245,8 @@ To onboard a new entity:
 
 1. Add entity logic in `nb_load_generic_bronze`
 2. Create Bronze table `bronze_<entity>_raw` with correct schema
-3. Add YAML contract to the Schema Registry (`governance/schema_registry/bronze/<entity>.yaml`)
-4. Add invocation in `pl_master_ingestion`
+3. Add YAML contract to the Schema Registry (`GOVERNANCE/schema-registry/01-bronze/<entity>.yaml`)
+4. Add invocation in `pl_master_ingestion` (inside `01-BRONZE/pipelines/pl_bronze_master.json`)
 5. Run `pl_master_ingestion` and verify:
    - ingestion logs in `tech_ingestion_log`
    - file lineage in `tech_ingestion_manifest`
@@ -263,3 +267,104 @@ No pipeline duplication required.
 ✅ Deterministic orchestration (sequential execution)  
 ✅ **Schema Registry governance (YAML contracts)**  
 ✅ **Post-ingestion schema compliance validation (nb_validate_bronze_schema_registry → tech_schema_compliance)**
+
+---
+
+## Silver Layer Pipelines
+
+### Overview
+
+Silver transformations are orchestrated through a single pipeline that delegates work to a **dispatcher notebook** (`nb_silver_load`). The dispatcher reads the entity control table and executes the appropriate `nb_silver_*` notebooks.
+
+### pl_silver_load_generic
+
+- **Pipeline**: `02-SILVER/pipelines/pl_silver_load_generic.json`
+- **Execution unit**: Trident notebook `nb_silver_load`
+- **Run ID**: `silver_run_id` is generated from pipeline context (`@pipeline().RunId`) and/or an optional provided reminder (`p_run_id`)
+
+#### Pipeline Parameters (as implemented)
+
+| Parameter | Type | Default | Description |
+|---|---:|---|---|
+| `p_entity_code` | string | `ALL` | Entity selector (`CARDS`, `FX`, `MCC`, `TRANSACTIONS`, `USERS`, `ALL`) |
+| `p_load_mode` | string | `full` | Load strategy (`full`, `incr`) |
+| `p_as_of_date` | string |  | Optional reference date |
+| `p_run_id` | string |  | Optional external run id (if empty, pipeline generates one) |
+
+For orchestration/contract details, see:
+- `ORCHESTRATION/02-silver/orchestration.md`
+- `ORCHESTRATION/02-silver/notebooks-contract.md`
+
+---
+
+## Gold Layer Pipelines
+
+### Overview
+
+Gold transformations are orchestrated through a single pipeline delegating to a **dispatcher notebook** (`nb_gold_load`). The dispatcher selects the entities to process and executes child notebooks (`nb_gold_dim_*`, `nb_gold_fact_*`).
+
+### pl_gold_load_generic
+
+- **Pipeline**: `03-GOLD/pipelines/pl_gold_load_generic.json`
+- **Execution unit**: Trident notebook `nb_gold_load`
+- **Run ID**: `p_gold_run_id` is set from `@pipeline().RunId`
+
+#### Pipeline Parameters (as implemented)
+
+| Parameter | Type | Default | Description |
+|---|---:|---|---|
+| `p_entity_code` | string | `dim_date` | Entity selector (example: `dim_mcc`, list, etc.) |
+| `p_load_mode` | string | `FULL` | Load strategy (`FULL`) |
+| `p_as_of_date` | string |  | Optional reference date |
+| `p_environment` | string | `dev` | `dev` / `test` / `prod` |
+| `p_triggered_by` | string | `manual` | `manual` / `schedule` |
+| `p_pipeline_name` | string | `pl_gold_load_generic` | Pipeline name for logging |
+| `p_gold_run_id` | string |  | Run id (pipeline-governed) |
+
+For orchestration/contract details, see:
+- `ORCHESTRATION/03-gold/orchestration.md`
+- `ORCHESTRATION/03-gold/notebooks-contract.md`
+
+---
+
+## DWH Layer Pipelines (Data Warehouse)
+
+### Overview
+
+The DWH layer is executed through **Script activities** calling **T-SQL stored procedures** in the Fabric Data Warehouse (`wh_wm_analytics`).  
+Execution is **job-registry-driven** using `dbo.wh_ctl_job` (group, order, criticality, required parameters).
+
+### Group pipelines
+
+Each group pipeline follows the same pattern:
+
+- `GetJobList` reads enabled jobs for one `job_group` (ordered by `job_order`)
+- `ForEachJobs` executes each job using a dynamic `EXEC <sp_schema>.<sp_name> ...`
+- `is_critical = 1` failures stop the pipeline
+
+Pipelines:
+
+- `04-DWH/pipelines/pl_dwh_refresh_dimensions.json` (DIMS)
+- `04-DWH/pipelines/pl_dwh_refresh_facts.json` (FACTS)
+- `04-DWH/pipelines/pl_dwh_refresh_aggregates.json` (AGG)
+- `04-DWH/pipelines/pl_dwh_refresh_controls.json` (CONTROLS)
+- `04-DWH/pipelines/pl_dwh_publish.json` (PUBLISH)
+
+### End-to-end orchestrator: pl_dwh_refresh_month_e2e
+
+- **Pipeline**: `04-DWH/pipelines/pl_dwh_refresh_month_e2e.json`
+- **Sequence**: DIMS → FACTS → AGG → CONTROLS → PUBLISH → Finalize_Run
+- **Finalize**: `dbo.sp_pub_wh_run_refresh`
+
+#### Pipeline Parameters (as implemented)
+
+| Parameter | Type | Description |
+|---|---|---|
+| `p_TxnMonth` | string/date | Month scope for refresh/DQ/publish (typically month start) |
+| `p_ExecDate` | string/date | Execution date used for logging |
+| `p_RunId` | string | Optional external run id (otherwise `@pipeline().RunId`) |
+
+For orchestration/contract details, see:
+- `ORCHESTRATION/04-dwh/orchestration.md`
+- `ORCHESTRATION/04-dwh/notebooks-contract.md`
+

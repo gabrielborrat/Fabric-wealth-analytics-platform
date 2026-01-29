@@ -1,0 +1,152 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {},
+  "variables": {},
+  "resources": [
+    {
+      "name": "pl_gold_load_generic",
+      "type": "pipelines",
+      "apiVersion": "2018-06-01",
+      "properties": {
+        "activities": [
+          {
+            "name": "Set_v_pipeline_run_id",
+            "type": "SetVariable",
+            "dependsOn": [],
+            "policy": {
+              "secureOutput": false,
+              "secureInput": false
+            },
+            "typeProperties": {
+              "variableName": "v_gold_run_id",
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              }
+            }
+          },
+          {
+            "name": "NotebookGoldLoad",
+            "type": "TridentNotebook",
+            "dependsOn": [
+              {
+                "activity": "Set_v_pipeline_run_id",
+                "dependencyConditions": [
+                  "Succeeded"
+                ]
+              }
+            ],
+            "policy": {
+              "timeout": "0.12:00:00",
+              "retry": 0,
+              "retryIntervalInSeconds": 30,
+              "secureOutput": false,
+              "secureInput": false
+            },
+            "typeProperties": {
+              "notebookId": "b0c52c1f-f14d-4061-9400-1198bbf766e4",
+              "workspaceId": "300f0249-d03f-436c-97fc-5b5940cc3aa3",
+              "parameters": {
+                "p_entity_code": {
+                  "value": {
+                    "value": "@pipeline().parameters.p_entity_code",
+                    "type": "Expression"
+                  },
+                  "type": "string"
+                },
+                "p_load_mode": {
+                  "value": {
+                    "value": "@pipeline().parameters.p_load_mode",
+                    "type": "Expression"
+                  },
+                  "type": "string"
+                },
+                "p_as_of_date": {
+                  "value": {
+                    "value": "@pipeline().parameters.p_as_of_date",
+                    "type": "Expression"
+                  },
+                  "type": "string"
+                },
+                "p_environment": {
+                  "value": {
+                    "value": "@pipeline().parameters.p_environment",
+                    "type": "Expression"
+                  },
+                  "type": "string"
+                },
+                "p_triggered_by": {
+                  "value": {
+                    "value": "@pipeline().parameters.p_triggered_by",
+                    "type": "Expression"
+                  },
+                  "type": "string"
+                },
+                "p_pipeline_name": {
+                  "value": {
+                    "value": "@pipeline().parameters.p_pipeline_name",
+                    "type": "Expression"
+                  },
+                  "type": "string"
+                },
+                "p_gold_run_id": {
+                  "value": {
+                    "value": "@variables('v_gold_run_id')",
+                    "type": "Expression"
+                  },
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "parameters": {
+          "p_entity_code": {
+            "type": "string",
+            "defaultValue": "dim_date"
+          },
+          "p_load_mode": {
+            "type": "string",
+            "defaultValue": "FULL"
+          },
+          "p_as_of_date": {
+            "type": "string"
+          },
+          "p_environment": {
+            "type": "string",
+            "defaultValue": "dev"
+          },
+          "p_triggered_by": {
+            "type": "string",
+            "defaultValue": "manual"
+          },
+          "p_pipeline_name": {
+            "type": "string",
+            "defaultValue": "pl_gold_load_generic"
+          },
+          "p_gold_run_id": {
+            "type": "string"
+          }
+        },
+        "variables": {
+          "v_gold_run_id": {
+            "type": "String"
+          },
+          "v_nb_exit": {
+            "type": "String"
+          },
+          "v_gold_status": {
+            "type": "String"
+          },
+          "v_gold_run_id_out": {
+            "type": "String"
+          }
+        },
+        "lastModifiedByObjectId": "871e52e6-9b89-4437-9ee4-ef6cc511763d",
+        "lastPublishTime": "2026-01-14T19:12:01Z"
+      },
+      "dependsOn": []
+    }
+  ]
+}

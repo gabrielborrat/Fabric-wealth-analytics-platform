@@ -1,0 +1,174 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "wh_wm_analytics": {
+      "type": "string"
+    }
+  },
+  "variables": {},
+  "resources": [
+    {
+      "name": "pl_dwh_publish",
+      "type": "pipelines",
+      "apiVersion": "2018-06-01",
+      "properties": {
+        "activities": [
+          {
+            "name": "GetJobList",
+            "type": "Script",
+            "dependsOn": [],
+            "policy": {
+              "timeout": "0.12:00:00",
+              "retry": 0,
+              "retryIntervalInSeconds": 30,
+              "secureOutput": false,
+              "secureInput": false
+            },
+            "linkedService": {
+              "name": "wh_wm_analytics",
+              "properties": {
+                "annotations": [],
+                "type": "DataWarehouse",
+                "typeProperties": {
+                  "endpoint": "oi2srbov7cpu5hkl5ue7m4jypu-jeba6mb72bwehf74lnmubtb2um.datawarehouse.fabric.microsoft.com",
+                  "artifactId": "[parameters('wh_wm_analytics')]",
+                  "workspaceId": "300f0249-d03f-436c-97fc-5b5940cc3aa3"
+                }
+              }
+            },
+            "typeProperties": {
+              "scripts": [
+                {
+                  "type": "Query",
+                  "text": {
+                    "value": "SELECT\n  job_group,\n  job_order,\n  job_code,\n  sp_schema,\n  sp_name,\n  enabled,\n  is_critical,\n  needs_txn_month,\n  needs_exec_date\nFROM dbo.wh_ctl_job\nWHERE enabled = 1\nand job_group = 'PUBLISH'\nORDER BY job_order;\n\n",
+                    "type": "Expression"
+                  }
+                }
+              ],
+              "scriptBlockExecutionTimeout": "02:00:00"
+            }
+          },
+          {
+            "name": "ForEachJobs",
+            "type": "ForEach",
+            "dependsOn": [
+              {
+                "activity": "GetJobList",
+                "dependencyConditions": [
+                  "Succeeded"
+                ]
+              }
+            ],
+            "typeProperties": {
+              "items": {
+                "value": "@activity('GetJobList').output.resultSets[0].rows\n",
+                "type": "Expression"
+              },
+              "activities": [
+                {
+                  "name": "If_Condition_TxnMonth",
+                  "type": "IfCondition",
+                  "dependsOn": [],
+                  "typeProperties": {
+                    "expression": {
+                      "value": "@and(\n  or(equals(item().needs_txn_month, 0), not(equals(pipeline().parameters.p_TxnMonth, ''))),\n  or(equals(item().needs_exec_date, 0), not(equals(pipeline().parameters.p_ExecDate, '')))\n)\n",
+                      "type": "Expression"
+                    },
+                    "ifFalseActivities": [],
+                    "ifTrueActivities": [
+                      {
+                        "name": "RunJobSP",
+                        "type": "Script",
+                        "dependsOn": [],
+                        "policy": {
+                          "timeout": "0.12:00:00",
+                          "retry": 0,
+                          "retryIntervalInSeconds": 30,
+                          "secureOutput": false,
+                          "secureInput": false
+                        },
+                        "linkedService": {
+                          "name": "wh_wm_analytics",
+                          "properties": {
+                            "annotations": [],
+                            "type": "DataWarehouse",
+                            "typeProperties": {
+                              "endpoint": "oi2srbov7cpu5hkl5ue7m4jypu-jeba6mb72bwehf74lnmubtb2um.datawarehouse.fabric.microsoft.com",
+                              "artifactId": "[parameters('wh_wm_analytics')]",
+                              "workspaceId": "300f0249-d03f-436c-97fc-5b5940cc3aa3"
+                            }
+                          }
+                        },
+                        "typeProperties": {
+                          "scripts": [
+                            {
+                              "type": "NonQuery",
+                              "text": {
+                                "value": "@concat(\n'EXEC ', item().sp_schema, '.', item().sp_name,\n' @RunId = ''', pipeline().parameters.p_RunId, '''',\n', @JobId = ''', item().job_code, '''',\nif(\n  item().needs_txn_month,\n  concat(', @TxnMonth = ''', pipeline().parameters.p_TxnMonth, ''''),\n  ''\n),\nif(\n  item().needs_exec_date,\n  concat(', @ExecDate = ''', pipeline().parameters.p_ExecDate, ''''),\n  ''\n),\n';'\n)\n\n\n\n",
+                                "type": "Expression"
+                              }
+                            }
+                          ],
+                          "scriptBlockExecutionTimeout": "02:00:00"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "If_JobFailed_Critical",
+                  "type": "IfCondition",
+                  "dependsOn": [
+                    {
+                      "activity": "If_Condition_TxnMonth",
+                      "dependencyConditions": [
+                        "Failed"
+                      ]
+                    }
+                  ],
+                  "typeProperties": {
+                    "expression": {
+                      "value": "@equals(item().is_critical, 1)\n",
+                      "type": "Expression"
+                    },
+                    "ifFalseActivities": [],
+                    "ifTrueActivities": [
+                      {
+                        "name": "Fail",
+                        "type": "Fail",
+                        "dependsOn": [],
+                        "typeProperties": {
+                          "message": {
+                            "value": "@concat('Critical job failed: ', item().job_code, ' / ', item().sp_schema, '.', item().sp_name)",
+                            "type": "Expression"
+                          },
+                          "errorCode": "500"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "parameters": {
+          "p_ExecDate": {
+            "type": "string"
+          },
+          "p_RunId": {
+            "type": "string"
+          },
+          "p_TxnMonth": {
+            "type": "string"
+          }
+        },
+        "lastModifiedByObjectId": "871e52e6-9b89-4437-9ee4-ef6cc511763d",
+        "lastPublishTime": "2026-01-19T23:07:34Z"
+      },
+      "dependsOn": []
+    }
+  ]
+}
